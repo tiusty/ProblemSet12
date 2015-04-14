@@ -157,9 +157,150 @@
     (list-fib-acc n '())))
 
 ;************************************************************************
+; Problem 4
 
+; Trick is one of:
+;   - (list Card Card Card Card ...) // any number of cards, for the problem 
+; it is a 4 card hand, but in reality it can be any number of cards
 
+; Suite is one of:
+;    - 'spade
+;    - 'heart
+;    - 'club
+;    - 'diamond
 
+(define-struct card [suite value])
+; (make-card Symbol Number)
+; Suite is a Symbol:
+; Interpretatino: the suite of the card
+; Value is a Number:
+; Interpretation: The number value of the card
+
+#;(define (card-tmpl a-C)
+    ... (card-suite a-C) ...
+    ... (card-value a-C) ...)
+
+(define-struct player [name numWins])
+; (make-player Number)
+; name is a String:
+; Name of the player
+; numWins is a number:
+; Interpretation: The number of wins the player has
+
+#;(define (player-tmpl a-p)
+    ... (player-name a-p) ...
+    ... (player-numWins a-p) ...)
+(define player1 (make-player "Alex" 0))
+(define player2 (make-player "Ben" 0))
+(define player3 (make-player "Charile" 0))
+(define player4 (make-player "David" 0))
+(define card1 (make-card 'heart 4))
+(define card2 (make-card 'spade 5))
+(define card22 (make-card 'spade 8))
+(define card33 (make-card 'diamond 8))
+(define card3 (make-card 'diamond 2))
+(define card4 (make-card 'club 5))
+(define card44 (make-card 'club 7))
+(define trick1 (list card2 card3 card4))
+(define trick2 (list card1 card4 card3))
+(define trick3 (list card3 card4))
+(define trick4 (list card1 card4))
+(define trick5 (list card4 card4))
+(define trick6 (list card22 card33 card2))
+(define trick7 (list card4 card2 card22))
+(define trick8 (list card1 card2 card3 card4))
+; Purpose:
+; Given two cards, see if the first card 
+; evaluates higher then the second card
+; if the first card is higher, then return true
+; else false
+; Card Card ->  Boolean
+(check-expect (cardSuite card1 card2) false)
+(check-expect (cardSuite card2 card1) true)
+(check-expect (cardSuite card1 card3) true)
+(check-expect (cardSuite card3 card4) true)
+(check-expect (cardSuite card3 card2) false)
+(check-expect (cardSuite card4 card33) false)
+
+(define (cardSuite a-c a-c2)
+  (cond
+    [(symbol=? (card-suite a-c) 'spade)
+     true]
+    [(symbol=? (card-suite a-c2) 'spade)
+     false]
+    [(symbol=? (card-suite a-c) 'heart)
+     true]
+    [(symbol=? (card-suite a-c) 'diamond)
+     (cond
+       [(symbol=? (card-suite a-c2) 'heart)
+        false]
+       [else true])]
+    [else false]))
+
+; Purpose:
+; Determines if two cards are equal
+; Card Card -> Boolean
+(check-expect (card=? card1 card1) true)
+(check-expect (card=? card2 card2) true)
+(check-expect (card=? card2 card1) false)
+(check-expect (card=? card4 card1) false)
+(define (card=? a-c1 a-c2)
+  (cond
+    [(and (symbol=? (card-suite a-c1) (card-suite a-c2))
+          (= (card-value a-c1) (card-value a-c2)))
+     true]
+    [else
+     false]))
+; Purpose:
+; Given the winning card and a trick return the number player
+; that won. x is the current player which starts at 1 always
+; Card Trick Number -> Number
+(check-expect (cardWinner card2 trick1 1) 1)
+(check-expect (cardWinner card3 trick1 1) 2)
+(check-expect (cardWinner card4 trick1 1) 3)
+(check-error (cardWinner card1 trick1 1) "No Cards")
+(check-expect (cardWinner card4 trick8 1) 4)
+(define (cardWinner a-c a-t x)
+  (cond
+    [(empty? a-t) (error "No Cards")]
+    [(card=? a-c (first a-t))
+     x]
+    [else
+     (cardWinner a-c (rest a-t) (add1 x))]))
+; Purpose:
+; takes a trick and returns the card
+; that won
+; Trick -> Number
+(check-expect (trickWinner trick1) card2)
+(check-expect (trickWinner trick2) card4)
+(check-expect (trickWinner trick3) card4)
+(check-expect (trickWinner trick6) card22)
+(check-expect (trickWinner trick7) card22)
+(define (trickWinner trick)
+  (local (; Tests the current card
+          ; against all the remaining card
+          ; and if it returns true it is the winner
+          ; Card Trick -> Boolean
+          (define (cardWinner card trick-rem)
+            (cond
+              [(empty? trick-rem)
+               true]
+              [(> (card-value card) (card-value (first trick-rem)))
+               (cardWinner card (rest trick-rem))]
+              [(= (card-value card) (card-value (first trick-rem)))
+               (cond
+                 [(cardSuite card (first trick-rem))
+                  true]
+                 [else
+                  (cardWinner card (rest trick-rem))])]
+              [else 
+               false])))
+    (cond
+      [(empty? (rest trick))
+       (first trick)]
+      [(cardWinner (first trick) (rest trick))
+       (first trick)]
+      [else (trickWinner (rest trick))])))
 
   
     
