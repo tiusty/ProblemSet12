@@ -383,14 +383,20 @@
               [else
                (cons (first LoP) (updateWin-base (add1 x) (rest LoP)))])))
     (make-game (updateWin-base 1 (game-players a-g)) (rest (game-tricks a-g)))))
+
+
 ; Purpose:
 ; takes a game which is a series of tricks 
 ; and determines which player wins the game
 ; [List-of Tricks] -> Player
-(define game1 (make-game (list player1 player2 player3 player4) (list trick1 trick1)))
-(define game2 (make-game (list player1 player2 player3 player4) (list trick1 trick2 trick3 trick4)))
-(define game3 (make-game (list player1 player2 player3 player4) (list trick1 trick2 trick3 trick4 trick5 trick6 trick7)))
-(define game4 (make-game (list player1 player2 player3 player4) (list trick9 trick9 trick9)))
+(define game1 (make-game (list player1 player2 player3 player4) 
+                         (list trick1 trick1)))
+(define game2 (make-game (list player1 player2 player3 player4)
+                         (list trick1 trick2 trick3 trick4)))
+(define game3 (make-game (list player1 player2 player3 player4) 
+                         (list trick1 trick2 trick3 trick4 trick5 trick6 trick7)))
+(define game4 (make-game (list player1 player2 player3 player4)
+                         (list trick9 trick9 trick9)))
 (check-expect (winner game1) (make-player "Alex" 2))
 (check-expect (winner game2) (make-player "Ben" 3))
 (check-expect (winner game3) (make-player "Ben" 3))
@@ -400,16 +406,151 @@
     [(empty? (game-tricks a-g)) (mostWins a-g)]
     [else
      (cond
-       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (first (game-tricks a-g)) 1) 1)
+       [(= (cardWinner (trickWinner (first (game-tricks a-g)))
+                       (first (game-tricks a-g)) 1) 1)
         (winner (updateWin 1 a-g))]
-       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (first (game-tricks a-g)) 1) 2)
+       [(= (cardWinner (trickWinner (first (game-tricks a-g)))
+                       (first (game-tricks a-g)) 1) 2)
         (winner (updateWin 2 a-g))]
-       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (first (game-tricks a-g)) 1) 3)
+       [(= (cardWinner (trickWinner (first (game-tricks a-g)))
+                       (first (game-tricks a-g)) 1) 3)
         (winner (updateWin 3 a-g))]
-       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (first (game-tricks a-g)) 1) 4)
+       [(= (cardWinner (trickWinner (first (game-tricks a-g)))
+                       (first (game-tricks a-g)) 1) 4)
         (winner (updateWin 4 a-g))])]))
+
+; ****************************************************************************************************
                
-    
+;;Problem 5
+;;Data definition
+;;A twitter is a structure (make-user string [List-of String])
+(define-struct user (handle tweeps))
+; Handle is a string
+; Interpretation: name of the user
+; Tweeps is a [List-of String]
+; Interpretation: Names of the follows of the user
+#;(define (user-tmpl a-u)
+    ... (user-handle a-u) ...
+    ... (user-tweeps a-u) ...)
+
+(define user1 (make-user "Alice" (list "Bob" "Charles" "Dave")))
+(define user2 (make-user "Bob" (list "Alice" "Charles")))
+(define user3 (make-user "Charles" (list "Bob" "Dave")))
+(define user4 (make-user "Dave" (list "Alice" "Charles")))
+(define user5 (make-user "Echo" empty))
+(define user6 (make-user "Fox" (list "BoB" "James" "Charles" "Dave" "Echo")))
+
+;;A twitter-network is one of:
+;; - empty
+;; - [List-of User]
+(define twi-nwk1 (list user1 user2 user3 user4 user5))
+(define twi-nwk2 (list user1 user2 user3 user5 user6))
+(define twi-nwk3 (list user1 user3 user5))
+
+; Purpose:
+; produces a list of all of the handles in the network
+;;list-handles: Twitter-network -> [List-of String]
+(define (list-handles nwk)
+  (local [;plus: [List-of String] [List-of String] -> [List-of String] 
+          (define (plus nwk acc)
+            (cond [(empty? nwk) acc]
+                  [else (cons (user-handle (first nwk)) (plus (rest nwk) acc))]))] 
+    (cond [(empty? nwk) nwk]
+          [else (plus nwk empty)])))
+
+(check-expect (list-handles twi-nwk1) (list "Alice" "Bob" "Charles" "Dave" "Echo"))
+(check-expect (list-handles empty) empty)
+
+; Purpose
+; Given a network, produce the handle that 
+; has the most followers
+;;most-followers: Twitter-network -> String
+(check-expect (most-followers twi-nwk1) user1)
+(check-expect (most-followers twi-nwk2) user6)
+(define (most-followers nwk)
+  (local (; accumlator of the amount of followers 
+          ; for a single user
+          ; User Number -> Number
+          (define (user-accum a-u acc)
+            (cond
+              [(empty? (user-tweeps a-u)) acc]
+              [else
+               (user-accum (make-user (user-handle a-u) (rest (user-tweeps a-u))) (add1 acc))]))
+          ; Returns the user with the most followers
+          ; Network User -> User
+          (define (nwk-accum nwk1 acc)
+            (cond
+              [(empty? nwk1) acc]
+              [(> (user-accum (first nwk1) 0) (user-accum acc 0))
+               (nwk-accum (rest nwk1) (first nwk1))]
+              [else
+               (nwk-accum (rest nwk1) acc)])))
+    (nwk-accum nwk (first nwk)))) 
+
+
+; Purpose:
+; Takes a follow and determines if there is 
+; a corresponding person in the network
+; String nwk -> maybe
+; Maybe is one of:
+;   - User
+;   - false
+(check-expect (corrFollower "Alice" twi-nwk1) user1)
+(check-expect (corrFollower "George" twi-nwk1) false)
+(check-expect (corrFollower "Dave" twi-nwk1) user4)
+(define (corrFollower str nwk)
+  (cond
+    [(empty? nwk) false]
+    [(string=? str (user-handle (first nwk)))
+     (first nwk)]
+    [else
+     (corrFollower str (rest nwk))]))
+
+; Purpose:
+; Given the original person, see if the 
+; corresponding person is a follower of the 
+; original person
+; User User -> Boolean
+(check-expect (origFollower user1 user2) true)
+(check-expect (origFollower user2 user3) true)
+(check-expect (origFollower user4 user5) false)
+(check-expect (origFollower user5 user6) true)
+(define (origFollower a-u follower)
+  (cond
+    [(empty? (user-tweeps follower)) false]
+    [(string=? (first (user-tweeps follower)) (user-handle a-u))
+     true]
+    [else
+     (origFollower a-u (make-user (user-handle follower) (rest (user-tweeps follower))))]))
+
+; Purpose:
+; Consumes a network and determines whether it 
+; contains two users who follow each other
+; Network -> Boolean
+(check-expect (friends? twi-nwk1) true)
+(check-expect (friends? twi-nwk2) true)
+(check-expect (friends? twi-nwk3) false)
+(define (friends? nwk)
+  (local (; determines if the first person in the network
+          ; has a friend
+          ; User nwk -> Boolean
+          (define (hasFriendInNetwork? a-u nwk1)
+            (cond
+              [(empty? nwk1) false]
+              [(user? (corrFollower (first (user-tweeps a-u)) nwk1))
+               (origFollower a-u (corrFollower (first (user-tweeps a-u)) nwk1))]
+              [(boolean? (corrFollower (first (user-tweeps a-u)) nwk1))
+               (hasFriendInNetwork? (make-user (user-handle a-u) (rest (user-tweeps a-u))) (rest nwk1))])))
+    (cond
+      [(empty? nwk) false]
+      [(hasFriendInNetwork? (first nwk) (rest nwk))
+       true]
+      [else
+       (friends? (rest nwk))])))
+               
+
+
+
 
   
     
