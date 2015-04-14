@@ -190,6 +190,18 @@
 #;(define (player-tmpl a-p)
     ... (player-name a-p) ...
     ... (player-numWins a-p) ...)
+
+(define-struct game [players tricks])
+; (make-game [list-of Player] [List-of Trick])
+; players is a [List-of Player]
+; Interpreation: All the players in the game
+; tricks is a [List-of Tricks]
+; Interpretation: All the tricks in the game
+
+#;(define (game-tmpl a-g)
+    ... (game-players a-g) ...
+    ... (game-tricks a-g) ...)
+
 (define player1 (make-player "Alex" 0))
 (define player2 (make-player "Ben" 0))
 (define player3 (make-player "Charile" 0))
@@ -270,7 +282,7 @@
 ; Purpose:
 ; takes a trick and returns the card
 ; that won
-; Trick -> Number
+; Trick -> Card
 (check-expect (trickWinner trick1) card2)
 (check-expect (trickWinner trick2) card4)
 (check-expect (trickWinner trick3) card4)
@@ -301,6 +313,91 @@
       [(cardWinner (first trick) (rest trick))
        (first trick)]
       [else (trickWinner (rest trick))])))
+
+; Purpose:
+; Returns the player with the most wins
+; game -> Player
+(define gameWin1 (make-game (list (make-player "Blah" 1)
+                                 (make-player "Moe" 2)) empty))
+(define gameWin2 (make-game (list (make-player "blah" 2)
+                                  (make-player "Moore" 4)
+                                  (make-player "Tim" 5)
+                                  (make-player "John" 2)) empty))
+(check-expect (mostWins gameWin1) (make-player "Moe" 2))
+(check-expect (mostWins gameWin2) (make-player "Tim" 5))
+(define (mostWins a-g)
+  (local (; takes in the list of players
+          ; from the game and produces
+          ; the player with the most wins
+          ; [List-of Player] -> [List-of Player]
+          (define (mostWins-base LoP)
+            (cond
+              [(empty? (rest LoP))
+               (first LoP)]
+              [(> (player-numWins (first LoP)) (player-numWins (second LoP)))
+               (mostWins-base (cons (first LoP) (rest (rest LoP))))]
+              [else
+               (mostWins-base (cons (second LoP) (rest (rest LoP))))])))
+   (mostWins-base (game-players a-g))))
+
+; Purpose:
+; Given which player won, update that 
+; corresponding player with an additional win
+; Number Game -> [List-of Player]
+(define gameUpdate1 (make-game (list (make-player "Blah" 1)
+                                     (make-player "Moe" 2)) (list trick1)))
+(define gameUpdate2 (make-game (list (make-player "Blah" 1)
+                                     (make-player "Moe" 2)
+                                     (make-player "Tim" 3)
+                                     (make-player "David" 4)) (list trick1)))
+(check-expect (updateWin 2 gameUpdate1) (make-game
+                                         (list (make-player "Blah" 1)
+                                               (make-player "Moe" 3)) empty))
+(check-expect (updateWin 1 gameUpdate1) (make-game
+                                         (list (make-player "Blah" 2)
+                                               (make-player "Moe" 2)) empty))
+(check-expect (updateWin 3 gameUpdate2) (make-game 
+                                         (list (make-player "Blah" 1)
+                                               (make-player "Moe" 2)
+                                               (make-player "Tim" 4)
+                                               (make-player "David" 4)) empty))
+(check-expect (updateWin 4 gameUpdate2) (make-game 
+                                         (list (make-player "Blah" 1)
+                                               (make-player "Moe" 2)
+                                               (make-player "Tim" 3)
+                                               (make-player "David" 5)) empty))
+(define (updateWin n a-g)
+  (local (; Create a new function with
+          ; a counter iterator
+          ; Number [List-of Player] -> game
+          (define (updateWin-base x LoP)
+            (cond
+              [(= x n)
+               (cons (make-player (player-name (first LoP)) (add1 (player-numWins (first LoP)))) (rest LoP))]
+              [else
+               (cons (first LoP) (updateWin-base (add1 x) (rest LoP)))])))
+    (make-game (updateWin-base 1 (game-players a-g)) (rest (game-tricks a-g)))))
+; Purpose:
+; takes a game which is a series of tricks 
+; and determines which player wins the game
+; [List-of Tricks] -> Player
+(define game1 (make-game (list player1 player2 player3 player4) (list trick1)))
+(check-expect (winner game1) (make-player "Alex" 1))
+(define (winner a-g)
+  (cond
+    [(empty? (game-tricks a-g)) (mostWins a-g)]
+    [else
+     (cond
+       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (first (game-tricks a-g)) 1) 1)
+        (winner (updateWin 1 a-g))]
+       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (game-tricks a-g) 1) 2)
+        (winner (updateWin 2 a-g))]
+       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (game-tricks a-g) 1) 3)
+        (winner (updateWin 3 a-g))]
+       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (game-tricks a-g) 1) 4)
+        (winner (updateWin 4 a-g))])]))
+               
+    
 
   
     
