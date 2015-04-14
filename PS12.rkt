@@ -221,6 +221,7 @@
 (define trick6 (list card22 card33 card2))
 (define trick7 (list card4 card2 card22))
 (define trick8 (list card1 card2 card3 card4))
+(define trick9 (list card4 card4 card4 card2))
 ; Purpose:
 ; Given two cards, see if the first card 
 ; evaluates higher then the second card
@@ -233,6 +234,8 @@
 (check-expect (cardSuite card3 card4) true)
 (check-expect (cardSuite card3 card2) false)
 (check-expect (cardSuite card4 card33) false)
+(check-expect (cardSuite card4 card2) false)
+(check-expect (cardSuite card2 card4) true)
 
 (define (cardSuite a-c a-c2)
   (cond
@@ -288,6 +291,7 @@
 (check-expect (trickWinner trick3) card4)
 (check-expect (trickWinner trick6) card22)
 (check-expect (trickWinner trick7) card22)
+(check-expect (trickWinner trick9) card2)
 (define (trickWinner trick)
   (local (; Tests the current card
           ; against all the remaining card
@@ -301,10 +305,10 @@
                (cardWinner card (rest trick-rem))]
               [(= (card-value card) (card-value (first trick-rem)))
                (cond
-                 [(cardSuite card (first trick-rem))
-                  true]
+                 [(cardSuite card (first trick-rem)) 
+                  (cardWinner card (rest trick-rem))]
                  [else
-                  (cardWinner card (rest trick-rem))])]
+                  false])]
               [else 
                false])))
     (cond
@@ -343,6 +347,8 @@
 ; Purpose:
 ; Given which player won, update that 
 ; corresponding player with an additional win
+; it also removes the trick that was just used
+; so the game incremements to the next trick
 ; Number Game -> [List-of Player]
 (define gameUpdate1 (make-game (list (make-player "Blah" 1)
                                      (make-player "Moe" 2)) (list trick1)))
@@ -381,8 +387,14 @@
 ; takes a game which is a series of tricks 
 ; and determines which player wins the game
 ; [List-of Tricks] -> Player
-(define game1 (make-game (list player1 player2 player3 player4) (list trick1)))
-(check-expect (winner game1) (make-player "Alex" 1))
+(define game1 (make-game (list player1 player2 player3 player4) (list trick1 trick1)))
+(define game2 (make-game (list player1 player2 player3 player4) (list trick1 trick2 trick3 trick4)))
+(define game3 (make-game (list player1 player2 player3 player4) (list trick1 trick2 trick3 trick4 trick5 trick6 trick7)))
+(define game4 (make-game (list player1 player2 player3 player4) (list trick9 trick9 trick9)))
+(check-expect (winner game1) (make-player "Alex" 2))
+(check-expect (winner game2) (make-player "Ben" 3))
+(check-expect (winner game3) (make-player "Ben" 3))
+(check-expect (winner game4) (make-player "David" 3))
 (define (winner a-g)
   (cond
     [(empty? (game-tricks a-g)) (mostWins a-g)]
@@ -390,11 +402,11 @@
      (cond
        [(= (cardWinner (trickWinner (first (game-tricks a-g))) (first (game-tricks a-g)) 1) 1)
         (winner (updateWin 1 a-g))]
-       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (game-tricks a-g) 1) 2)
+       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (first (game-tricks a-g)) 1) 2)
         (winner (updateWin 2 a-g))]
-       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (game-tricks a-g) 1) 3)
+       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (first (game-tricks a-g)) 1) 3)
         (winner (updateWin 3 a-g))]
-       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (game-tricks a-g) 1) 4)
+       [(= (cardWinner (trickWinner (first (game-tricks a-g))) (first (game-tricks a-g)) 1) 4)
         (winner (updateWin 4 a-g))])]))
                
     
